@@ -3,13 +3,10 @@
 
 #include <string>
 
-using namespace std;
-
 enum class AttemptStatus
 {
     InProgress,
-    Submitted,
-    TimeOut
+    Submitted
 };
 
 class TestAttempt
@@ -18,8 +15,8 @@ private:
     int attemptId;
     int testId;
     int studentId;
-    string startTime;
-    string submitTime;
+    std::string startTime;
+    std::string submitTime;
     AttemptStatus status;
 
 public:

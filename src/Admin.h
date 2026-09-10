@@ -1,15 +1,13 @@
 #ifndef ADMIN_H
 #define ADMIN_H
 
-#include <string>
 #include "User.h"
-
-using namespace std;
+#include <string>
 
 class Admin : public User
 {
 private:
-    string adminID;
+    std::string adminID;
 
 public:
     void manageUsers();

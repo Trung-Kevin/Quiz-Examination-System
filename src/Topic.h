@@ -3,14 +3,12 @@
 
 #include <string>
 
-using namespace std;
-
 class Topic
 {
 private:
     int topicId;
-    string name;
-    string description;
+    std::string name;
+    std::string description;
 
 public:
     void update();

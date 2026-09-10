@@ -3,8 +3,6 @@
 
 #include <string>
 
-using namespace std;
-
 class Result
 {
 private:
@@ -16,7 +14,7 @@ private:
     int wrongCount;
     int unansweredCount;
     int timeTaken;
-    string submittedAt;
+    std::string submittedAt;
 
 public:
     void calculate();

@@ -1,27 +1,26 @@
 #ifndef STUDENT_H
 #define STUDENT_H
 
-#include <string>
-#include <vector>
 #include "User.h"
-#include "Course.h"
-#include "Test.h"
-#include "TestAttempt.h"
-#include "Result.h"
+#include <vector>
+#include <string>
 
-using namespace std;
+class Course;
+class Test;
+class TestAttempt;
+class Result;
 
 class Student : public User
 {
 private:
-    string studentID;
+    std::string studentID;
 
 public:
     bool registerAccount();
-    vector<Course> viewSubject();
-    vector<Test> viewTests();
+    std::vector<Course> viewSubject();
+    std::vector<Test> viewTests();
     TestAttempt takeTest();
-    vector<Result> viewResults();
+    std::vector<Result> viewResults();
 };
 
 #endif

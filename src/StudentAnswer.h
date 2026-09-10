@@ -10,8 +10,6 @@ private:
     int selectedOptionId;
     bool isCorrect;
     double score;
-
-public:
 };
 
 #endif

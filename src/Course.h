@@ -3,14 +3,12 @@
 
 #include <string>
 
-using namespace std;
-
 class Course
 {
 private:
     int courseId;
-    string name;
-    string description;
+    std::string name;
+    std::string description;
 
 public:
     void addTopic();

@@ -8,8 +8,6 @@ private:
     int questionId;
     int questionOrder;
     double score;
-
-public:
 };
 
 #endif

@@ -1,12 +1,8 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <string>
-#include <vector>
 #include "Course.h"
-#include "TestQuestion.h"
-
-using namespace std;
+#include <string>
 
 enum class TestStatus
 {
@@ -19,14 +15,13 @@ class Test
 {
 private:
     int testId;
-    string title;
+    std::string title;
     Course course;
     int timeLimit;
-    string startTime;
-    string endTime;
+    std::string startTime;
+    std::string endTime;
     int questionCount;
     TestStatus status;
-    vector<TestQuestion> testQuestions;
 
 public:
     void addQuestion();

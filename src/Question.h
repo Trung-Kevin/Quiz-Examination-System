@@ -3,9 +3,6 @@
 
 #include <string>
 #include <vector>
-#include "AnswerOption.h"
-
-using namespace std;
 
 enum class DifficultyLevel
 {
@@ -18,14 +15,13 @@ class Question
 {
 private:
     int questionId;
-    string content;
+    std::string content;
     DifficultyLevel difficultyLevel;
-    vector<AnswerOption> answerOptions;
 
 public:
     void update();
     void deleteQuestion();
-    vector<Question> search();
+    std::vector<Question> search();
 };
 
 #endif

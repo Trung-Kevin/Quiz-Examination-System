@@ -3,13 +3,11 @@
 
 #include <string>
 
-using namespace std;
-
 class AnswerOption
 {
 private:
     int optionId;
-    string content;
+    std::string content;
     bool isCorrect;
 
 public:

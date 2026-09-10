@@ -3,18 +3,16 @@
 
 #include <string>
 
-using namespace std;
-
 class User
 {
 private:
-    string userID;
-    string username;
-    string password;
-    string email;
-    string fullName;
-    string dateOfBirth;
-    string status;
+    std::string userID;
+    std::string username;
+    std::string password;
+    std::string email;
+    std::string fullName;
+    std::string dateOfBirth;
+    std::string status;
 
 public:
     bool login();

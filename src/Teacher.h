@@ -1,15 +1,13 @@
 #ifndef TEACHER_H
 #define TEACHER_H
 
-#include <string>
 #include "User.h"
-
-using namespace std;
+#include <string>
 
 class Teacher : public User
 {
 private:
-    string teacherID;
+    std::string teacherID;
 
 public:
     void manageCourse();
