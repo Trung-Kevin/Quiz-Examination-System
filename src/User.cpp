@@ -43,6 +43,7 @@ namespace
                 continue;
 
             stringstream ss(line);
+
             Account acc;
 
             getline(ss, acc.userID, '|');
@@ -54,7 +55,10 @@ namespace
             getline(ss, acc.status, '|');
             getline(ss, acc.role, '|');
 
-            accounts.push_back(acc);
+            if (!acc.username.empty())
+            {
+                accounts.push_back(acc);
+            }
         }
 
         file.close();
@@ -62,9 +66,14 @@ namespace
         return accounts;
     }
 
-    void saveAccounts(const vector<Account> &accounts)
+    bool saveAccounts(const vector<Account> &accounts)
     {
         ofstream file(USER_FILE);
+
+        if (!file.is_open())
+        {
+            return false;
+        }
 
         for (const Account &acc : accounts)
         {
@@ -75,12 +84,36 @@ namespace
                  << acc.fullName << "|"
                  << acc.dateOfBirth << "|"
                  << acc.status << "|"
-                 << acc.role << "\n";
+                 << acc.role
+                 << "\n";
         }
 
         file.close();
+
+        return true;
+    }
+
+    bool accountExists(
+        const vector<Account> &accounts,
+        const string &username,
+        const string &email)
+    {
+        for (const Account &acc : accounts)
+        {
+            if (acc.username == username ||
+                acc.email == email)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
+
+// =====================================================
+// LOGIN - CONSOLE VERSION
+// =====================================================
 
 bool User::login()
 {
@@ -95,6 +128,19 @@ bool User::login()
     cout << "Password: ";
     cin >> password;
 
+    return login(
+        usernameOrEmail,
+        password);
+}
+
+// =====================================================
+// LOGIN - GUI VERSION
+// =====================================================
+
+bool User::login(
+    const string &usernameOrEmail,
+    const string &password)
+{
     vector<Account> accounts = loadAccounts();
 
     for (const Account &acc : accounts)
@@ -105,58 +151,98 @@ bool User::login()
         {
             if (acc.status != "Active")
             {
-                cout << "Account is locked.\n";
                 return false;
             }
-
-            cout << "Login successful!\n";
-            cout << "Role: " << acc.role << "\n";
 
             return true;
         }
     }
 
-    cout << "Invalid username/email or password.\n";
-
     return false;
 }
+
+// =====================================================
+// UPDATE PROFILE - CONSOLE VERSION
+// =====================================================
 
 void User::updateProfile()
 {
     string username;
+    string fullName;
+    string email;
+    string dateOfBirth;
 
     cout << "===== UPDATE PROFILE =====\n";
 
-    cout << "Enter username: ";
+    cout << "Username: ";
     cin >> username;
 
+    cin.ignore();
+
+    cout << "Full name: ";
+    getline(cin, fullName);
+
+    cout << "Email: ";
+    getline(cin, email);
+
+    cout << "Date of birth: ";
+    getline(cin, dateOfBirth);
+
+    if (updateProfile(
+            username,
+            fullName,
+            email,
+            dateOfBirth))
+    {
+        cout << "Profile updated successfully!\n";
+    }
+    else
+    {
+        cout << "Username not found.\n";
+    }
+}
+
+// =====================================================
+// UPDATE PROFILE - GUI VERSION
+// =====================================================
+
+bool User::updateProfile(
+    const string &username,
+    const string &fullName,
+    const string &email,
+    const string &dateOfBirth)
+{
     vector<Account> accounts = loadAccounts();
 
     for (Account &acc : accounts)
     {
         if (acc.username == username)
         {
-            cin.ignore();
+            // Check email used by another account
 
-            cout << "Full name: ";
-            getline(cin, acc.fullName);
+            for (const Account &other : accounts)
+            {
+                if (other.username != username &&
+                    other.email == email)
+                {
+                    return false;
+                }
+            }
 
-            cout << "Email: ";
-            getline(cin, acc.email);
+            acc.fullName = fullName;
+            acc.email = email;
+            acc.dateOfBirth = dateOfBirth;
 
-            cout << "Date of birth: ";
-            getline(cin, acc.dateOfBirth);
-
-            saveAccounts(accounts);
-
-            cout << "Profile updated successfully!\n";
-
-            return;
+            return saveAccounts(accounts);
         }
     }
 
-    cout << "User not found.\n";
+    return false;
 }
+
+// =====================================================
+// RECOVER PASSWORD - CONSOLE VERSION
+// =====================================================
 
 bool User::recoverPassword()
 {
@@ -167,24 +253,51 @@ bool User::recoverPassword()
     cout << "Enter registered email: ";
     cin >> email;
 
+    string password;
+
+    bool result = recoverPassword(
+        email,
+        password);
+
+    if (result)
+    {
+        cout << "Account found.\n";
+        cout << "Password: " << password << "\n";
+    }
+    else
+    {
+        cout << "Email not found.\n";
+    }
+
+    return result;
+}
+
+// =====================================================
+// RECOVER PASSWORD - GUI VERSION
+// =====================================================
+
+bool User::recoverPassword(
+    const string &email,
+    string &password)
+{
     vector<Account> accounts = loadAccounts();
 
     for (const Account &acc : accounts)
     {
         if (acc.email == email)
         {
-            cout << "Account found.\n";
-            cout << "Username: " << acc.username << "\n";
-            cout << "Password recovery successful.\n";
+            password = acc.password;
 
             return true;
         }
     }
 
-    cout << "Email not found.\n";
-
     return false;
 }
+
+// =====================================================
+// CHANGE PASSWORD - CONSOLE VERSION
+// =====================================================
 
 bool User::changePassword()
 {
@@ -200,6 +313,35 @@ bool User::changePassword()
     cout << "Old password: ";
     cin >> oldPassword;
 
+    cout << "New password: ";
+    cin >> newPassword;
+
+    bool result = changePassword(
+        username,
+        oldPassword,
+        newPassword);
+
+    if (result)
+    {
+        cout << "Password changed successfully!\n";
+    }
+    else
+    {
+        cout << "Username or old password is incorrect.\n";
+    }
+
+    return result;
+}
+
+// =====================================================
+// CHANGE PASSWORD - GUI VERSION
+// =====================================================
+
+bool User::changePassword(
+    const string &username,
+    const string &oldPassword,
+    const string &newPassword)
+{
     vector<Account> accounts = loadAccounts();
 
     for (Account &acc : accounts)
@@ -207,20 +349,11 @@ bool User::changePassword()
         if (acc.username == username &&
             acc.password == oldPassword)
         {
-            cout << "New password: ";
-            cin >> newPassword;
-
             acc.password = newPassword;
 
-            saveAccounts(accounts);
-
-            cout << "Password changed successfully!\n";
-
-            return true;
+            return saveAccounts(accounts);
         }
     }
-
-    cout << "Username or old password is incorrect.\n";
 
     return false;
 }

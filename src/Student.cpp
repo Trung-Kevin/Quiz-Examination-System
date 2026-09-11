@@ -13,6 +13,10 @@
 
 using namespace std;
 
+// =====================================================
+// REGISTER - CONSOLE VERSION
+// =====================================================
+
 bool Student::registerAccount()
 {
     string fullName;
@@ -40,32 +44,110 @@ bool Student::registerAccount()
     cout << "Date of birth: ";
     getline(cin, dateOfBirth);
 
-    ifstream checkFile("data/users.txt");
+    return registerAccount(
+        fullName,
+        email,
+        username,
+        password,
+        dateOfBirth);
+}
+
+// =====================================================
+// REGISTER - GUI VERSION
+// =====================================================
+
+bool Student::registerAccount(
+    const string &fullName,
+    const string &email,
+    const string &username,
+    const string &password,
+    const string &dateOfBirth)
+{
+    ifstream checkFile(
+        "data/users.txt");
 
     string line;
 
     while (getline(checkFile, line))
     {
-        if (line.find("|" + email + "|") != string::npos)
+        if (line.empty())
+            continue;
+
+        stringstream ss(line);
+
+        string userID;
+        string oldUsername;
+        string oldPassword;
+        string oldEmail;
+
+        getline(ss, userID, '|');
+        getline(ss, oldUsername, '|');
+        getline(ss, oldPassword, '|');
+        getline(ss, oldEmail, '|');
+
+        if (oldUsername == username ||
+            oldEmail == email)
         {
-            cout << "Email already exists.\n";
+            checkFile.close();
+
             return false;
         }
     }
 
     checkFile.close();
 
-    ofstream file("data/users.txt", ios::app);
+    // Find next student ID
+
+    int nextID = 1;
+
+    ifstream idFile(
+        "data/users.txt");
+
+    while (getline(idFile, line))
+    {
+        if (line.empty())
+            continue;
+
+        stringstream ss(line);
+
+        string id;
+
+        getline(ss, id, '|');
+
+        if (id.length() > 1 &&
+            id[0] == 'S')
+        {
+            try
+            {
+                int number =
+                    stoi(id.substr(1));
+
+                if (number >= nextID)
+                {
+                    nextID = number + 1;
+                }
+            }
+            catch (...)
+            {
+                // Ignore invalid ID
+            }
+        }
+    }
+
+    idFile.close();
+
+    // Append new account
+
+    ofstream file(
+        "data/users.txt",
+        ios::app);
 
     if (!file.is_open())
     {
-        cout << "Cannot open user data file.\n";
         return false;
     }
 
-    static int nextID = 1;
-
-    file << "S" << nextID++ << "|"
+    file << "S" << nextID << "|"
          << username << "|"
          << password << "|"
          << email << "|"
@@ -76,10 +158,12 @@ bool Student::registerAccount()
 
     file.close();
 
-    cout << "Registration successful!\n";
-
     return true;
 }
+
+// =====================================================
+// OTHER STUDENT FUNCTIONS
+// =====================================================
 
 vector<Course> Student::viewSubject()
 {
