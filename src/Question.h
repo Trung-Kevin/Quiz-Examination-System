@@ -2,7 +2,6 @@
 #define QUESTION_H
 
 #include <string>
-#include <vector>
 
 enum class DifficultyLevel
 {
@@ -15,13 +14,26 @@ class Question
 {
 private:
     int questionId;
+    int topicId;
     std::string content;
     DifficultyLevel difficultyLevel;
 
 public:
-    void update();
-    void deleteQuestion();
-    std::vector<Question> search();
+    Question();
+    Question(int questionId,
+             int topicId,
+             const std::string& content,
+             DifficultyLevel difficultyLevel);
+
+    int getQuestionId() const;
+    int getTopicId() const;
+    std::string getContent() const;
+    DifficultyLevel getDifficultyLevel() const;
+
+    void setQuestionId(int questionId);
+    void setTopicId(int topicId);
+    void setContent(const std::string& content);
+    void setDifficultyLevel(DifficultyLevel difficultyLevel);
 };
 
 #endif
