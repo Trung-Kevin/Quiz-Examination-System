@@ -19,9 +19,21 @@ private:
     DifficultyLevel difficultyLevel;
 
 public:
+    Question(int id = 0,
+             const std::string &content = "",
+             DifficultyLevel difficulty = DifficultyLevel::Easy);
+
     void update();
     void deleteQuestion();
     std::vector<Question> search();
+
+    int getQuestionId() const;
+    std::string getContent() const;
+    DifficultyLevel getDifficultyLevel() const;
+
+    void setQuestionId(int id);
+    void setContent(const std::string &value);
+    void setDifficultyLevel(DifficultyLevel value);
 };
 
 #endif
