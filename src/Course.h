@@ -11,18 +11,20 @@ private:
     std::string description;
 
 public:
-    Course(int id = 0,
-           const std::string &name = "",
-           const std::string &description = "");
+    Course(int id,
+           const std::string &name,
+           const std::string &description);
 
     void addTopic();
     void update();
     void deleteCourse();
 
+    // Getters
     int getCourseId() const;
     std::string getName() const;
     std::string getDescription() const;
 
+    // Setters
     void setCourseId(int id);
     void setName(const std::string &value);
     void setDescription(const std::string &value);
