@@ -1,26 +1,21 @@
 #include "Question.h"
 
-#include <fstream>
-#include <sstream>
-
-namespace
+Question::Question(int id,
+                   int topicId,
+                   const std::string &content,
+                   DifficultyLevel difficulty)
+    : questionId(id),
+      topicId(topicId),
+      content(content),
+      difficultyLevel(difficulty)
 {
-    DifficultyLevel stringToDifficulty(const std::string &value)
-    {
-        if (value == "Medium")
-            return DifficultyLevel::Medium;
-
-        if (value == "Hard")
-            return DifficultyLevel::Hard;
-
-        return DifficultyLevel::Easy;
-    }
 }
 
 Question::Question(int id,
                    const std::string &content,
                    DifficultyLevel difficulty)
     : questionId(id),
+      topicId(0),
       content(content),
       difficultyLevel(difficulty)
 {
@@ -28,62 +23,28 @@ Question::Question(int id,
 
 void Question::update()
 {
-    // Actual update is handled by QuestionGui.
+    // Actual update is handled by QuestionBank / GUI.
 }
 
 void Question::deleteQuestion()
 {
-    // Actual deletion is handled by QuestionGui.
+    // Actual deletion is handled by QuestionBank / GUI.
 }
 
 std::vector<Question> Question::search()
 {
-    std::vector<Question> result;
-
-    std::ifstream file("data/questions.txt");
-
-    if (!file.is_open())
-        return result;
-
-    std::string line;
-
-    while (std::getline(file, line))
-    {
-        if (line.empty())
-            continue;
-
-        std::stringstream ss(line);
-
-        std::string idText;
-        std::string topicIdText;
-        std::string difficultyText;
-        std::string questionText;
-
-        std::getline(ss, idText, '|');
-        std::getline(ss, topicIdText, '|');
-        std::getline(ss, difficultyText, '|');
-        std::getline(ss, questionText);
-
-        try
-        {
-            int id = std::stoi(idText);
-
-            result.emplace_back(
-                id,
-                questionText,
-                stringToDifficulty(difficultyText));
-        }
-        catch (...)
-        {
-        }
-    }
-
-    return result;
+    // Actual search is handled by QuestionBank.
+    return {};
 }
 
 int Question::getQuestionId() const
 {
     return questionId;
+}
+
+int Question::getTopicId() const
+{
+    return topicId;
 }
 
 std::string Question::getContent() const
@@ -99,6 +60,11 @@ DifficultyLevel Question::getDifficultyLevel() const
 void Question::setQuestionId(int id)
 {
     questionId = id;
+}
+
+void Question::setTopicId(int id)
+{
+    topicId = id;
 }
 
 void Question::setContent(const std::string &value)

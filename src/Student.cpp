@@ -186,7 +186,7 @@ TestAttempt Student::takeTest()
     cout << "===== TAKE TEST =====\n";
     cout << "Starting test...\n";
 
-    return TestAttempt();
+    return TestAttempt(0, 0, 0);
 }
 
 vector<Result> Student::viewResults()

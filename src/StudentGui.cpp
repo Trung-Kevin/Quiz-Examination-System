@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <fstream>
+#include <algorithm>
 
 struct QuizQuestion
 {
@@ -56,6 +58,93 @@ static const int ID_VIEW_RESULT = 1005;
 
 static const int ID_RADIO_BASE = 2000;
 
+// =====================================================
+// ATTEMPT DATA
+// =====================================================
+
+static const std::string ATTEMPT_FILE =
+    "data/attempts.txt";
+
+static int getNextAttemptId()
+{
+    std::ifstream file(ATTEMPT_FILE);
+
+    if (!file.is_open())
+        return 1;
+
+    std::string line;
+    int maxAttemptId = 0;
+
+    while (std::getline(file, line))
+    {
+        if (line.empty())
+            continue;
+
+        std::stringstream ss(line);
+
+        std::string studentIdText;
+        std::string attemptIdText;
+
+        std::getline(ss, studentIdText, '|');
+        std::getline(ss, attemptIdText, '|');
+
+        try
+        {
+            int attemptId = std::stoi(attemptIdText);
+
+            if (attemptId > maxAttemptId)
+                maxAttemptId = attemptId;
+        }
+        catch (...)
+        {
+            continue;
+        }
+    }
+
+    file.close();
+
+    return maxAttemptId + 1;
+}
+
+static bool saveAttempt()
+{
+    if (!g_state.attempt)
+        return false;
+
+    std::ofstream file(
+        ATTEMPT_FILE,
+        std::ios::app);
+
+    if (!file.is_open())
+        return false;
+
+    file << g_state.studentId
+         << "|"
+         << g_state.attempt->getAttemptId()
+         << "|"
+         << g_state.attempt->getTestId()
+         << "|"
+         << g_state.attempt->getStartTime()
+         << "|"
+         << g_state.attempt->getSubmitTime()
+         << "|";
+
+    if (g_state.attempt->isSubmitted())
+        file << "Submitted";
+    else
+        file << "InProgress";
+
+    file << "\n";
+
+    file.close();
+
+    return true;
+}
+
+// =====================================================
+// TIME
+// =====================================================
+
 static std::string formatTime(int seconds)
 {
     int minutes = seconds / 60;
@@ -71,7 +160,13 @@ static std::string formatTime(int seconds)
     return oss.str();
 }
 
-static void showMessage(HWND hwnd, const std::string &message)
+// =====================================================
+// MESSAGE
+// =====================================================
+
+static void showMessage(
+    HWND hwnd,
+    const std::string &message)
 {
     MessageBoxA(
         hwnd,
@@ -80,70 +175,113 @@ static void showMessage(HWND hwnd, const std::string &message)
         MB_OK | MB_ICONINFORMATION);
 }
 
+// =====================================================
+// SAMPLE QUIZ
+// =====================================================
+
 static void loadSampleQuiz()
 {
     g_state.questions.clear();
 
     QuizQuestion q1;
+
     q1.questionId = 1;
-    q1.content = "Which language is mainly used in this project?";
+
+    q1.content =
+        "Which language is mainly used in this project?";
+
     q1.options =
         {
             "Python",
             "Java",
             "C++",
             "PHP"};
+
     q1.correctOption = 3;
     q1.score = 1.0;
 
+    g_state.questions.push_back(q1);
+
     QuizQuestion q2;
+
     q2.questionId = 2;
-    q2.content = "Which concept allows a class to inherit from another class?";
+
+    q2.content =
+        "Which concept allows a class to inherit from another class?";
+
     q2.options =
         {
             "Inheritance",
             "Compilation",
             "Iteration",
             "Recursion"};
+
     q2.correctOption = 1;
     q2.score = 1.0;
 
+    g_state.questions.push_back(q2);
+
     QuizQuestion q3;
+
     q3.questionId = 3;
-    q3.content = "Which keyword is used to create an object dynamically in C++?";
+
+    q3.content =
+        "Which keyword is used to create an object dynamically in C++?";
+
     q3.options =
         {
             "class",
             "new",
             "object",
             "create"};
+
     q3.correctOption = 2;
     q3.score = 1.0;
 
+    g_state.questions.push_back(q3);
+
     QuizQuestion q4;
+
     q4.questionId = 4;
-    q4.content = "What does OOP stand for?";
+
+    q4.content =
+        "What does OOP stand for?";
+
     q4.options =
         {
             "Object Oriented Programming",
             "Open Online Program",
             "Object Operating Process",
             "Online Object Protocol"};
+
     q4.correctOption = 1;
     q4.score = 1.0;
 
+    g_state.questions.push_back(q4);
+
     QuizQuestion q5;
+
     q5.questionId = 5;
-    q5.content = "Which data type represents true or false?";
+
+    q5.content =
+        "Which data type represents true or false?";
+
     q5.options =
         {
             "int",
             "double",
             "bool",
             "char"};
+
     q5.correctOption = 3;
     q5.score = 1.0;
+
+    g_state.questions.push_back(q5);
 }
+
+// =====================================================
+// QUESTION CONTROLS
+// =====================================================
 
 static void clearQuestionControls()
 {
@@ -170,9 +308,14 @@ static void saveCurrentAnswer(HWND hwnd)
     if (g_state.radioButtons.empty())
         return;
 
-    for (int i = 0; i < static_cast<int>(g_state.radioButtons.size()); i++)
+    for (
+        int i = 0;
+        i < static_cast<int>(
+                g_state.radioButtons.size());
+        i++)
     {
-        if (SendMessage(
+        if (
+            SendMessage(
                 g_state.radioButtons[i],
                 BM_GETCHECK,
                 0,
@@ -187,14 +330,17 @@ static void saveCurrentAnswer(HWND hwnd)
         }
     }
 
-    g_state.answers[g_state.currentQuestion].clearAnswer();
+    g_state.answers[g_state.currentQuestion]
+        .clearAnswer();
 }
 
 static void restoreCurrentAnswer()
 {
-    if (g_state.currentQuestion < 0 ||
+    if (
+        g_state.currentQuestion < 0 ||
         g_state.currentQuestion >=
-            static_cast<int>(g_state.answers.size()))
+            static_cast<int>(
+                g_state.answers.size()))
     {
         return;
     }
@@ -203,8 +349,11 @@ static void restoreCurrentAnswer()
         g_state.answers[g_state.currentQuestion]
             .getSelectedOptionId();
 
-    if (selected < 1 ||
-        selected > static_cast<int>(g_state.radioButtons.size()))
+    if (
+        selected < 1 ||
+        selected >
+            static_cast<int>(
+                g_state.radioButtons.size()))
     {
         return;
     }
@@ -226,14 +375,19 @@ static void createQuestionControls(HWND hwnd)
     QuizQuestion &q =
         g_state.questions[g_state.currentQuestion];
 
-    int y = 155;
+    int y = 200;
 
-    for (int i = 0; i < static_cast<int>(q.options.size()); i++)
+    for (
+        int i = 0;
+        i < static_cast<int>(
+                q.options.size());
+        i++)
     {
         HWND radio = CreateWindowA(
             "BUTTON",
             q.options[i].c_str(),
-            WS_CHILD | WS_VISIBLE |
+            WS_CHILD |
+                WS_VISIBLE |
                 BS_AUTORADIOBUTTON,
             70,
             y,
@@ -244,7 +398,8 @@ static void createQuestionControls(HWND hwnd)
             GetModuleHandle(nullptr),
             nullptr);
 
-        g_state.radioButtons.push_back(radio);
+        g_state.radioButtons.push_back(
+            radio);
 
         y += 45;
     }
@@ -254,15 +409,26 @@ static void createQuestionControls(HWND hwnd)
 
 static void drawQuestion(HWND hwnd)
 {
-    InvalidateRect(hwnd, nullptr, TRUE);
+    InvalidateRect(
+        hwnd,
+        nullptr,
+        TRUE);
+
     createQuestionControls(hwnd);
 }
+
+// =====================================================
+// START TEST
+// =====================================================
 
 static void startTest(HWND hwnd)
 {
     if (g_state.testStarted)
     {
-        showMessage(hwnd, "The test has already started.");
+        showMessage(
+            hwnd,
+            "The test has already started.");
+
         return;
     }
 
@@ -270,13 +436,20 @@ static void startTest(HWND hwnd)
 
     if (g_state.questions.empty())
     {
-        showMessage(hwnd, "No quiz questions available.");
+        showMessage(
+            hwnd,
+            "No quiz questions available.");
+
         return;
     }
 
     g_state.answers.clear();
 
-    for (int i = 0; i < static_cast<int>(g_state.questions.size()); i++)
+    for (
+        int i = 0;
+        i < static_cast<int>(
+                g_state.questions.size());
+        i++)
     {
         g_state.answers.emplace_back(
             i + 1,
@@ -285,17 +458,25 @@ static void startTest(HWND hwnd)
     }
 
     delete g_state.attempt;
+
     g_state.attempt = new TestAttempt(
-        1,
+        getNextAttemptId(),
         1,
         g_state.studentId);
+
+    delete g_state.result;
+
+    g_state.result = nullptr;
 
     g_state.currentQuestion = 0;
 
     g_state.timeLimit = 300;
-    g_state.remainingSeconds = g_state.timeLimit;
+
+    g_state.remainingSeconds =
+        g_state.timeLimit;
 
     g_state.testStarted = true;
+
     g_state.submitted = false;
 
     SetTimer(
@@ -307,6 +488,10 @@ static void startTest(HWND hwnd)
     drawQuestion(hwnd);
 }
 
+// =====================================================
+// CALCULATE RESULT
+// =====================================================
+
 static void calculateResult()
 {
     if (!g_state.attempt)
@@ -314,15 +499,23 @@ static void calculateResult()
 
     double maximumScore = 0.0;
 
-    for (const QuizQuestion &q : g_state.questions)
+    for (
+        const QuizQuestion &q :
+        g_state.questions)
     {
         maximumScore += q.score;
     }
 
     int secondsTaken =
-        g_state.timeLimit - g_state.remainingSeconds;
+        g_state.timeLimit -
+        g_state.remainingSeconds;
 
-    g_state.result = new Result(1, g_state.attempt->getAttemptId());
+    delete g_state.result;
+
+    g_state.result =
+        new Result(
+            1,
+            g_state.attempt->getAttemptId());
 
     g_state.result->calculate(
         g_state.answers,
@@ -331,17 +524,29 @@ static void calculateResult()
         g_state.attempt->getSubmitTime());
 }
 
-static void submitTest(HWND hwnd, bool autoSubmit)
+// =====================================================
+// SUBMIT TEST
+// =====================================================
+
+static void submitTest(
+    HWND hwnd,
+    bool autoSubmit)
 {
     if (!g_state.testStarted)
     {
-        showMessage(hwnd, "Please start the test first.");
+        showMessage(
+            hwnd,
+            "Please start the test first.");
+
         return;
     }
 
     if (g_state.submitted)
     {
-        showMessage(hwnd, "This test has already been submitted.");
+        showMessage(
+            hwnd,
+            "This test has already been submitted.");
+
         return;
     }
 
@@ -349,21 +554,36 @@ static void submitTest(HWND hwnd, bool autoSubmit)
 
     if (!autoSubmit)
     {
-        int confirm = MessageBoxA(
-            hwnd,
-            "Are you sure you want to submit the test?",
-            "Confirm Submission",
-            MB_YESNO | MB_ICONQUESTION);
+        int confirm =
+            MessageBoxA(
+                hwnd,
+                "Are you sure you want to submit the test?",
+                "Confirm Submission",
+                MB_YESNO |
+                    MB_ICONQUESTION);
 
         if (confirm != IDYES)
             return;
     }
 
-    KillTimer(hwnd, g_state.timerId);
+    KillTimer(
+        hwnd,
+        g_state.timerId);
 
     g_state.attempt->submit();
 
     g_state.submitted = true;
+
+    // Save attempt history
+    if (!saveAttempt())
+    {
+        MessageBoxA(
+            hwnd,
+            "The test was submitted, but the attempt history could not be saved.",
+            "Warning",
+            MB_OK |
+                MB_ICONWARNING);
+    }
 
     calculateResult();
 
@@ -375,7 +595,8 @@ static void submitTest(HWND hwnd, bool autoSubmit)
             hwnd,
             "Time is up. Your test has been submitted automatically.",
             "Time Up",
-            MB_OK | MB_ICONWARNING);
+            MB_OK |
+                MB_ICONWARNING);
     }
     else
     {
@@ -384,22 +605,33 @@ static void submitTest(HWND hwnd, bool autoSubmit)
             "Your test has been submitted successfully.");
     }
 
-    InvalidateRect(hwnd, nullptr, TRUE);
+    InvalidateRect(
+        hwnd,
+        nullptr,
+        TRUE);
 }
+
+// =====================================================
+// SHOW RESULT
+// =====================================================
 
 static void showResult(HWND hwnd)
 {
-    if (!g_state.submitted || !g_state.result)
+    if (
+        !g_state.submitted ||
+        !g_state.result)
     {
         showMessage(
             hwnd,
             "Please complete and submit the test first.");
+
         return;
     }
 
     std::ostringstream oss;
 
-    oss << std::fixed << std::setprecision(2);
+    oss << std::fixed
+        << std::setprecision(2);
 
     oss << "EXAMINATION RESULT\n\n";
 
@@ -430,7 +662,8 @@ static void showResult(HWND hwnd)
         << "\n";
 
     oss << "Time taken: "
-        << formatTime(g_state.result->getTimeTaken())
+        << formatTime(
+               g_state.result->getTimeTaken())
         << "\n\n";
 
     oss << "Submitted at: "
@@ -440,12 +673,18 @@ static void showResult(HWND hwnd)
         hwnd,
         oss.str().c_str(),
         "Examination Result",
-        MB_OK | MB_ICONINFORMATION);
+        MB_OK |
+            MB_ICONINFORMATION);
 }
+
+// =====================================================
+// NAVIGATION
+// =====================================================
 
 static void previousQuestion(HWND hwnd)
 {
-    if (!g_state.testStarted ||
+    if (
+        !g_state.testStarted ||
         g_state.submitted)
         return;
 
@@ -454,25 +693,35 @@ static void previousQuestion(HWND hwnd)
     if (g_state.currentQuestion > 0)
     {
         g_state.currentQuestion--;
+
         drawQuestion(hwnd);
     }
 }
 
 static void nextQuestion(HWND hwnd)
 {
-    if (!g_state.testStarted ||
+    if (
+        !g_state.testStarted ||
         g_state.submitted)
         return;
 
     saveCurrentAnswer(hwnd);
 
-    if (g_state.currentQuestion <
-        static_cast<int>(g_state.questions.size()) - 1)
+    if (
+        g_state.currentQuestion <
+        static_cast<int>(
+            g_state.questions.size()) -
+            1)
     {
         g_state.currentQuestion++;
+
         drawQuestion(hwnd);
     }
 }
+
+// =====================================================
+// DRAW TEXT
+// =====================================================
 
 static void drawText(
     HDC hdc,
@@ -481,54 +730,72 @@ static void drawText(
     int y,
     int size = 18)
 {
-    HFONT font = CreateFontA(
-        size,
-        0,
-        0,
-        0,
-        FW_NORMAL,
-        FALSE,
-        FALSE,
-        FALSE,
-        ANSI_CHARSET,
-        OUT_DEFAULT_PRECIS,
-        CLIP_DEFAULT_PRECIS,
-        DEFAULT_QUALITY,
-        DEFAULT_PITCH | FF_SWISS,
-        "Segoe UI");
+    HFONT font =
+        CreateFontA(
+            size,
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            DEFAULT_QUALITY,
+            DEFAULT_PITCH |
+                FF_SWISS,
+            "Segoe UI");
 
     HFONT oldFont =
-        (HFONT)SelectObject(hdc, font);
+        (HFONT)SelectObject(
+            hdc,
+            font);
 
     TextOutA(
         hdc,
         x,
         y,
         text.c_str(),
-        static_cast<int>(text.length()));
+        static_cast<int>(
+            text.length()));
 
-    SelectObject(hdc, oldFont);
+    SelectObject(
+        hdc,
+        oldFont);
+
     DeleteObject(font);
 }
+
+// =====================================================
+// DRAW STUDENT GUI
+// =====================================================
 
 static void drawStudentGUI(
     HWND hwnd,
     HDC hdc)
 {
     RECT rect;
-    GetClientRect(hwnd, &rect);
+
+    GetClientRect(
+        hwnd,
+        &rect);
 
     int width = rect.right;
-    int height = rect.bottom;
 
     HBRUSH background =
-        CreateSolidBrush(RGB(245, 247, 250));
+        CreateSolidBrush(
+            RGB(245, 247, 250));
 
-    FillRect(hdc, &rect, background);
+    FillRect(
+        hdc,
+        &rect,
+        background);
 
-    DeleteObject(background);
+    DeleteObject(
+        background);
 
-    // Header
     RECT header =
         {
             0,
@@ -537,14 +804,16 @@ static void drawStudentGUI(
             90};
 
     HBRUSH headerBrush =
-        CreateSolidBrush(RGB(37, 99, 235));
+        CreateSolidBrush(
+            RGB(37, 99, 235));
 
     FillRect(
         hdc,
         &header,
         headerBrush);
 
-    DeleteObject(headerBrush);
+    DeleteObject(
+        headerBrush);
 
     drawText(
         hdc,
@@ -560,10 +829,10 @@ static void drawStudentGUI(
         55,
         14);
 
-    // Student name
     drawText(
         hdc,
-        "Student: " + g_state.studentName,
+        "Student: " +
+            g_state.studentName,
         500,
         25,
         16);
@@ -625,13 +894,13 @@ static void drawStudentGUI(
         hdc,
         q.content,
         50,
-        145,
+        150,
         20);
 
-    // Timer
     std::string timerText =
         "Time: " +
-        formatTime(g_state.remainingSeconds);
+        formatTime(
+            g_state.remainingSeconds);
 
     drawText(
         hdc,
@@ -651,6 +920,10 @@ static void drawStudentGUI(
     }
 }
 
+// =====================================================
+// WINDOW PROCEDURE
+// =====================================================
+
 static LRESULT CALLBACK StudentGUIProc(
     HWND hwnd,
     UINT msg,
@@ -664,7 +937,9 @@ static LRESULT CALLBACK StudentGUIProc(
         CreateWindowA(
             "BUTTON",
             "Start Test",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD |
+                WS_VISIBLE |
+                BS_PUSHBUTTON,
             50,
             285,
             140,
@@ -677,7 +952,9 @@ static LRESULT CALLBACK StudentGUIProc(
         CreateWindowA(
             "BUTTON",
             "Previous",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD |
+                WS_VISIBLE |
+                BS_PUSHBUTTON,
             50,
             390,
             120,
@@ -690,7 +967,9 @@ static LRESULT CALLBACK StudentGUIProc(
         CreateWindowA(
             "BUTTON",
             "Next",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD |
+                WS_VISIBLE |
+                BS_PUSHBUTTON,
             185,
             390,
             120,
@@ -703,7 +982,9 @@ static LRESULT CALLBACK StudentGUIProc(
         CreateWindowA(
             "BUTTON",
             "Submit Test",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD |
+                WS_VISIBLE |
+                BS_PUSHBUTTON,
             320,
             390,
             140,
@@ -716,7 +997,9 @@ static LRESULT CALLBACK StudentGUIProc(
         CreateWindowA(
             "BUTTON",
             "View Result",
-            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            WS_CHILD |
+                WS_VISIBLE |
+                BS_PUSHBUTTON,
             475,
             390,
             140,
@@ -731,7 +1014,8 @@ static LRESULT CALLBACK StudentGUIProc(
 
     case WM_COMMAND:
     {
-        int id = LOWORD(wParam);
+        int id =
+            LOWORD(wParam);
 
         if (id == ID_START_TEST)
         {
@@ -747,7 +1031,9 @@ static LRESULT CALLBACK StudentGUIProc(
         }
         else if (id == ID_SUBMIT_TEST)
         {
-            submitTest(hwnd, false);
+            submitTest(
+                hwnd,
+                false);
         }
         else if (id == ID_VIEW_RESULT)
         {
@@ -759,7 +1045,8 @@ static LRESULT CALLBACK StudentGUIProc(
 
     case WM_TIMER:
     {
-        if (wParam == g_state.timerId &&
+        if (
+            wParam == g_state.timerId &&
             g_state.testStarted &&
             !g_state.submitted)
         {
@@ -774,7 +1061,9 @@ static LRESULT CALLBACK StudentGUIProc(
             }
             else
             {
-                submitTest(hwnd, true);
+                submitTest(
+                    hwnd,
+                    true);
             }
         }
 
@@ -786,7 +1075,9 @@ static LRESULT CALLBACK StudentGUIProc(
         PAINTSTRUCT ps;
 
         HDC hdc =
-            BeginPaint(hwnd, &ps);
+            BeginPaint(
+                hwnd,
+                &ps);
 
         drawStudentGUI(
             hwnd,
@@ -805,11 +1096,17 @@ static LRESULT CALLBACK StudentGUIProc(
             hwnd,
             g_state.timerId);
 
+        clearQuestionControls();
+
         delete g_state.attempt;
+
         delete g_state.result;
 
         g_state.attempt = nullptr;
+
         g_state.result = nullptr;
+
+        g_state.hwnd = nullptr;
 
         return 0;
     }
@@ -822,38 +1119,62 @@ static LRESULT CALLBACK StudentGUIProc(
         lParam);
 }
 
+// =====================================================
+// OPEN STUDENT GUI
+// =====================================================
+
 void openStudentGUI(
     HWND parent,
     int studentId,
     const std::string &studentName)
 {
     g_state.studentId = studentId;
-    g_state.studentName = studentName;
+
+    g_state.studentName =
+        studentName;
+
+    g_state.testStarted = false;
+
+    g_state.submitted = false;
+
+    g_state.currentQuestion = 0;
+
+    g_state.remainingSeconds = 300;
+
+    clearQuestionControls();
 
     WNDCLASSA wc{};
 
-    wc.lpfnWndProc = StudentGUIProc;
-    wc.hInstance = GetModuleHandle(nullptr);
-    wc.lpszClassName = "StudentQuizGUIClass";
-    wc.hCursor = LoadCursor(
-        nullptr,
-        IDC_ARROW);
+    wc.lpfnWndProc =
+        StudentGUIProc;
+
+    wc.hInstance =
+        GetModuleHandle(nullptr);
+
+    wc.lpszClassName =
+        "StudentQuizGUIClass";
+
+    wc.hCursor =
+        LoadCursor(
+            nullptr,
+            IDC_ARROW);
 
     RegisterClassA(&wc);
 
-    HWND hwnd = CreateWindowExA(
-        0,
-        "StudentQuizGUIClass",
-        "Student - Quiz Examination",
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        900,
-        600,
-        parent,
-        nullptr,
-        GetModuleHandle(nullptr),
-        nullptr);
+    HWND hwnd =
+        CreateWindowExA(
+            0,
+            "StudentQuizGUIClass",
+            "Student - Quiz Examination",
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            900,
+            600,
+            parent,
+            nullptr,
+            GetModuleHandle(nullptr),
+            nullptr);
 
     if (!hwnd)
     {
@@ -861,7 +1182,8 @@ void openStudentGUI(
             parent,
             "Cannot create Student GUI.",
             "Error",
-            MB_OK | MB_ICONERROR);
+            MB_OK |
+                MB_ICONERROR);
 
         return;
     }
