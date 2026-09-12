@@ -2,7 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-
+#include "TestGui.h"
 using namespace std;
 
 // =====================================================
@@ -843,8 +843,7 @@ LRESULT CALLBACK DashboardWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     break;
 
                 case 3:
-                    showMessage(hwnd, "Test Management",
-                                "Create, edit, publish and delete tests; add or remove questions and configure timing.");
+                    openTestGui(hwnd);
                     break;
 
                 case 4:

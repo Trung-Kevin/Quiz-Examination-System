@@ -1,5 +1,12 @@
 #include "Course.h"
 
+// Constructor mặc định
+Course::Course()
+    : courseId(0), name(""), description("")
+{
+}
+
+// Constructor đầy đủ
 Course::Course(int id,
                const std::string &name,
                const std::string &description)
@@ -22,6 +29,7 @@ void Course::deleteCourse()
     // Actual deletion is handled by QuestionGui data manager.
 }
 
+// Getters
 int Course::getCourseId() const
 {
     return courseId;
@@ -37,6 +45,7 @@ std::string Course::getDescription() const
     return description;
 }
 
+// Setters
 void Course::setCourseId(int id)
 {
     courseId = id;

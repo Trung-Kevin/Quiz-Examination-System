@@ -11,6 +11,10 @@ private:
     std::string description;
 
 public:
+    // Constructor mặc định
+    Course();
+
+    // Constructor đầy đủ
     Course(int id,
            const std::string &name,
            const std::string &description);
