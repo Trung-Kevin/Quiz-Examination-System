@@ -1,22 +1,22 @@
 #include "TestQuestion.h"
 
 TestQuestion::TestQuestion()
-    : testId(0),
-      questionId(0),
-      questionOrder(0),
-      score(0.0)
 {
+    testId = 0;
+    questionId = 0;
+    questionOrder = 0;
+    score = 0.0;
 }
 
 TestQuestion::TestQuestion(int testId,
                            int questionId,
                            int questionOrder,
                            double score)
-    : testId(testId),
-      questionId(questionId),
-      questionOrder(questionOrder),
-      score(score)
 {
+    this->testId = testId;
+    this->questionId = questionId;
+    this->questionOrder = questionOrder;
+    this->score = score;
 }
 
 int TestQuestion::getTestId() const
@@ -39,22 +39,18 @@ double TestQuestion::getScore() const
     return score;
 }
 
-void TestQuestion::setTestId(int testId)
-{
-    this->testId = testId;
-}
-
-void TestQuestion::setQuestionId(int questionId)
-{
-    this->questionId = questionId;
-}
-
 void TestQuestion::setQuestionOrder(int questionOrder)
 {
-    this->questionOrder = questionOrder;
+    if (questionOrder > 0)
+    {
+        this->questionOrder = questionOrder;
+    }
 }
 
 void TestQuestion::setScore(double score)
 {
-    this->score = score;
+    if (score >= 0)
+    {
+        this->score = score;
+    }
 }

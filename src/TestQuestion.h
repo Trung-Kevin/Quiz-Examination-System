@@ -11,6 +11,7 @@ private:
 
 public:
     TestQuestion();
+
     TestQuestion(int testId,
                  int questionId,
                  int questionOrder,
@@ -21,8 +22,6 @@ public:
     int getQuestionOrder() const;
     double getScore() const;
 
-    void setTestId(int testId);
-    void setQuestionId(int questionId);
     void setQuestionOrder(int questionOrder);
     void setScore(double score);
 };

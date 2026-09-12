@@ -1,10 +1,9 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include "Course.h"
-#include "TestQuestion.h"
 #include <string>
 #include <vector>
+#include "Course.h"
 
 enum class TestStatus
 {
@@ -25,35 +24,41 @@ private:
     int questionCount;
     TestStatus status;
 
-    // Danh sách câu hỏi thuộc Test
-    std::vector<TestQuestion> questions;
-
 public:
-    // Constructor
     Test();
+
     Test(int testId,
-         const std::string& title,
-         const Course& course,
+         const std::string &title,
+         const Course &course,
          int timeLimit,
-         const std::string& startTime,
-         const std::string& endTime);
+         const std::string &startTime,
+         const std::string &endTime,
+         int questionCount,
+         TestStatus status);
 
-    // Test Management
-    void addQuestion();
-    void removeQuestion();
-    void update();
-    void publish();
-    void deleteTest();
-
-    // Getter
     int getTestId() const;
     std::string getTitle() const;
+    Course getCourse() const;
     int getTimeLimit() const;
     std::string getStartTime() const;
     std::string getEndTime() const;
     int getQuestionCount() const;
     TestStatus getStatus() const;
-    const std::vector<TestQuestion>& getQuestions() const;
+
+    void setTitle(const std::string &title);
+    void setCourse(const Course &course);
+    void setTimeLimit(int timeLimit);
+    void setStartTime(const std::string &startTime);
+    void setEndTime(const std::string &endTime);
+    void setQuestionCount(int questionCount);
+    void setStatus(TestStatus status);
+
+    void addQuestion();
+    void removeQuestion();
+    void update();
+    void publish();
+    void unpublish();
+    void deleteTest();
 };
 
 #endif
