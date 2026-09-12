@@ -843,7 +843,6 @@ LRESULT CALLBACK DashboardWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
                     break;
 
                 case 3:
-
                     openTestGui(hwnd);
                     break;
 
