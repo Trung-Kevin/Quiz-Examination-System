@@ -16,6 +16,7 @@ private:
 
 public:
     bool login();
+
     bool login(
         const std::string &usernameOrEmail,
         const std::string &password);

@@ -25,10 +25,10 @@ public:
 
     void calculate();
 
-    void calculate(const std::vector<StudentAnswer>& answers,
+    void calculate(const std::vector<StudentAnswer> &answers,
                    double maximumScore,
                    int secondsTaken,
-                   const std::string& submittedTime);
+                   const std::string &submittedTime);
 
     double getTotalScore() const;
     double getMaxScore() const;

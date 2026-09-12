@@ -18,10 +18,10 @@ public:
     StudentAnswer(int answerId, int attemptId, int questionId);
 
     void setSelectedOption(int optionId);
-    void setAnswerText(const std::string& text);
+    void setAnswerText(const std::string &text);
 
     void evaluate(int correctOptionId, double questionScore);
-    void evaluateWritten(const std::string& correctAnswer,
+    void evaluateWritten(const std::string &correctAnswer,
                          double questionScore);
 
     void clearAnswer();

@@ -1,29 +1,41 @@
 #include "Admin.h"
 
-#include <iostream>
+Admin::Admin()
+{
+    adminID = "";
+}
 
-using namespace std;
+Admin::Admin(const std::string &id)
+{
+    adminID = id;
+}
 
 void Admin::manageUsers()
 {
-    cout << "===== ADMIN - USER MANAGEMENT =====\n";
-    cout << "User management function.\n";
+    // User management is handled by Admin GUI.
 }
 
 void Admin::manageTests()
 {
-    cout << "===== ADMIN - TEST MANAGEMENT =====\n";
-    cout << "Test management function.\n";
+    // Test management is handled by Admin GUI.
 }
 
 void Admin::manageData()
 {
-    cout << "===== ADMIN - DATA MANAGEMENT =====\n";
-    cout << "Data management function.\n";
+    // Data management is handled by Admin GUI.
 }
 
 void Admin::managePermissions()
 {
-    cout << "===== ADMIN - PERMISSION MANAGEMENT =====\n";
-    cout << "Permission management function.\n";
+    // Permission management is handled by Admin GUI.
+}
+
+std::string Admin::getAdminID() const
+{
+    return adminID;
+}
+
+void Admin::setAdminID(const std::string &id)
+{
+    adminID = id;
 }
