@@ -1,47 +1,34 @@
 #include "TestAttempt.h"
-
-#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 
-static std::string getCurrentTime()
+static std::string getCurrentDateTime()
 {
-    auto now = std::chrono::system_clock::now();
-
-    std::time_t currentTime =
-        std::chrono::system_clock::to_time_t(now);
-
+    std::time_t now = std::time(nullptr);
     std::tm localTime{};
 
 #ifdef _WIN32
-    localtime_s(&localTime, &currentTime);
+    localtime_s(&localTime, &now);
 #else
-    localtime_r(&currentTime, &localTime);
+    localtime_r(&now, &localTime);
 #endif
 
     std::ostringstream oss;
-
-    oss << std::put_time(
-        &localTime,
-        "%Y-%m-%d %H:%M:%S"
-    );
-
+    oss << std::put_time(&localTime, "%Y-%m-%d %H:%M:%S");
     return oss.str();
 }
 
-TestAttempt::TestAttempt(
-    int attemptId,
-    int testId,
-    int studentId
-)
-    : attemptId(attemptId),
-      testId(testId),
-      studentId(studentId),
-      startTime(getCurrentTime()),
-      submitTime(""),
-      status(AttemptStatus::InProgress)
+TestAttempt::TestAttempt(int attemptId, int testId, int studentId)
 {
+    this->attemptId = attemptId;
+    this->testId = testId;
+    this->studentId = studentId;
+
+    this->startTime = getCurrentDateTime();
+    this->submitTime = "";
+
+    this->status = AttemptStatus::InProgress;
 }
 
 void TestAttempt::submit()
@@ -49,8 +36,7 @@ void TestAttempt::submit()
     if (status == AttemptStatus::Submitted)
         return;
 
-    submitTime = getCurrentTime();
-
+    submitTime = getCurrentDateTime();
     status = AttemptStatus::Submitted;
 }
 

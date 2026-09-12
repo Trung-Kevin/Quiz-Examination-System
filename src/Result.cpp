@@ -18,10 +18,10 @@ void Result::calculate()
     // Calculation is performed by the overloaded calculate() method.
 }
 
-void Result::calculate(const std::vector<StudentAnswer>& answers,
+void Result::calculate(const std::vector<StudentAnswer> &answers,
                        double maximumScore,
                        int secondsTaken,
-                       const std::string& submittedTime)
+                       const std::string &submittedTime)
 {
     totalScore = 0.0;
     maxScore = maximumScore;
@@ -31,18 +31,21 @@ void Result::calculate(const std::vector<StudentAnswer>& answers,
     timeTaken = secondsTaken;
     submittedAt = submittedTime;
 
-    for (const StudentAnswer& answer : answers)
+    for (const StudentAnswer &answer : answers)
     {
-        if (answer.getSelectedOptionId() == 0 &&
+        // Chưa trả lời
+        if (answer.getSelectedOptionId() == -1 &&
             answer.getAnswerText().empty())
         {
             unansweredCount++;
         }
+        // Trả lời đúng
         else if (answer.getIsCorrect())
         {
             correctCount++;
             totalScore += answer.getScore();
         }
+        // Trả lời sai
         else
         {
             wrongCount++;
