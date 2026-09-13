@@ -1,25 +1,44 @@
 #include "Topic.h"
 
 Topic::Topic(int id,
+             int courseId,
              const std::string &name,
              const std::string &description)
-    : topicId(id), name(name), description(description)
+    : topicId(id),
+      courseId(courseId),
+      name(name),
+      description(description)
+{
+}
+
+Topic::Topic(int id,
+             const std::string &name,
+             const std::string &description)
+    : topicId(id),
+      courseId(0),
+      name(name),
+      description(description)
 {
 }
 
 void Topic::update()
 {
-    // Actual saving is handled by QuestionGui data manager.
+    // Actual update is handled by QuestionBank / GUI.
 }
 
 void Topic::deleteTopic()
 {
-    // Actual deletion is handled by QuestionGui data manager.
+    // Actual deletion is handled by QuestionBank / GUI.
 }
 
 int Topic::getTopicId() const
 {
     return topicId;
+}
+
+int Topic::getCourseId() const
+{
+    return courseId;
 }
 
 std::string Topic::getName() const
@@ -35,6 +54,11 @@ std::string Topic::getDescription() const
 void Topic::setTopicId(int id)
 {
     topicId = id;
+}
+
+void Topic::setCourseId(int id)
+{
+    courseId = id;
 }
 
 void Topic::setName(const std::string &value)

@@ -7,6 +7,7 @@
 void openStudentGUI(
     HWND parent,
     int studentId,
-    const std::string &studentName);
+    const std::string &studentName,
+    const std::string &studentUsername = "");
 
 #endif
