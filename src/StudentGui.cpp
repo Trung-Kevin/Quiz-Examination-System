@@ -28,6 +28,10 @@ struct StudentGUIState
 
     int studentId = 0;
     std::string studentName;
+    std::string studentUsername;
+
+    int testId = 1;
+    std::string testTitle = "C++ Programming Fundamentals";
 
     TestAttempt *attempt = nullptr;
     Result *result = nullptr;
@@ -64,6 +68,225 @@ static const int ID_RADIO_BASE = 2000;
 
 static const std::string ATTEMPT_FILE =
     "data/attempts.txt";
+
+static const std::string RESULT_FILE =
+    "data/results.txt";
+
+struct StoredQuestion
+{
+    int questionId;
+    std::string content;
+    std::vector<std::string> options;
+    int correctOption;
+};
+
+struct StoredTestQuestion
+{
+    int questionId;
+    int questionOrder;
+    double score;
+};
+
+static bool isTestRegistered(const std::string &testTitle)
+{
+    std::ifstream file("data/registrations.txt");
+    std::string line;
+
+    while (file.is_open() && std::getline(file, line))
+    {
+        std::stringstream ss(line);
+        std::string username;
+        std::string title;
+
+        std::getline(ss, username, '|');
+        std::getline(ss, title, '|');
+
+        if (username == g_state.studentUsername &&
+            title == testTitle)
+            return true;
+    }
+
+    return false;
+}
+
+static bool loadPublishedQuiz()
+{
+    g_state.questions.clear();
+
+    std::ifstream testFile("data/tests.txt");
+    std::string line;
+    bool foundTest = false;
+
+    while (testFile.is_open() && std::getline(testFile, line))
+    {
+        std::stringstream ss(line);
+        std::string idText;
+        std::string title;
+        std::string unused;
+        std::string timeText;
+        std::string status;
+
+        std::getline(ss, idText, '|');
+        std::getline(ss, title, '|');
+        for (int i = 0; i < 3; ++i)
+            std::getline(ss, unused, '|');
+        std::getline(ss, timeText, '|');
+        std::getline(ss, unused, '|');
+        std::getline(ss, unused, '|');
+        std::getline(ss, unused, '|');
+        std::getline(ss, status);
+
+        if (status == "Published" &&
+            isTestRegistered(title))
+        {
+            try
+            {
+                g_state.testId = std::stoi(idText);
+                g_state.testTitle = title;
+                g_state.timeLimit = std::max(1, std::stoi(timeText)) * 60;
+                foundTest = true;
+                break;
+            }
+            catch (...)
+            {
+            }
+        }
+    }
+
+    if (!foundTest)
+        return false;
+
+    std::vector<StoredTestQuestion> mappings;
+    std::ifstream mappingFile("data/test_questions.txt");
+
+    while (mappingFile.is_open() && std::getline(mappingFile, line))
+    {
+        std::stringstream ss(line);
+        std::string testIdText;
+        std::string questionIdText;
+        std::string orderText;
+        std::string scoreText;
+
+        std::getline(ss, testIdText, '|');
+        std::getline(ss, questionIdText, '|');
+        std::getline(ss, orderText, '|');
+        std::getline(ss, scoreText, '|');
+
+        try
+        {
+            if (std::stoi(testIdText) == g_state.testId)
+            {
+                mappings.push_back(
+                    {std::stoi(questionIdText),
+                     std::stoi(orderText),
+                     std::stod(scoreText)});
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+
+    std::vector<StoredQuestion> storedQuestions;
+    std::ifstream questionFile("data/questions.txt");
+
+    while (questionFile.is_open() && std::getline(questionFile, line))
+    {
+        std::stringstream ss(line);
+        std::string idText;
+        std::string unused;
+        StoredQuestion question{};
+
+        std::getline(ss, idText, '|');
+        std::getline(ss, unused, '|');
+        std::getline(ss, unused, '|');
+        std::getline(ss, question.content);
+
+        try
+        {
+            question.questionId = std::stoi(idText);
+            question.correctOption = -1;
+            storedQuestions.push_back(question);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    std::ifstream optionFile("data/answer_options.txt");
+
+    while (optionFile.is_open() && std::getline(optionFile, line))
+    {
+        std::stringstream ss(line);
+        std::string questionIdText;
+        std::string optionIdText;
+        std::string correctText;
+        std::string content;
+
+        std::getline(ss, questionIdText, '|');
+        std::getline(ss, optionIdText, '|');
+        std::getline(ss, correctText, '|');
+        std::getline(ss, content);
+
+        try
+        {
+            int questionId = std::stoi(questionIdText);
+            int optionId = std::stoi(optionIdText);
+
+            for (StoredQuestion &question : storedQuestions)
+            {
+                if (question.questionId == questionId)
+                {
+                    question.options.push_back(content);
+
+                    if (correctText == "1")
+                        question.correctOption = optionId;
+
+                    break;
+                }
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (mappings.empty())
+        return false;
+
+    g_state.questions.clear();
+
+    std::sort(
+        mappings.begin(),
+        mappings.end(),
+        [](const StoredTestQuestion &left,
+           const StoredTestQuestion &right)
+        {
+            return left.questionOrder < right.questionOrder;
+        });
+
+    for (const StoredTestQuestion &mapping : mappings)
+    {
+        for (const StoredQuestion &stored : storedQuestions)
+        {
+            if (stored.questionId != mapping.questionId ||
+                stored.options.empty() ||
+                stored.correctOption < 1)
+                continue;
+
+            QuizQuestion question;
+            question.questionId = stored.questionId;
+            question.content = stored.content;
+            question.options = stored.options;
+            question.correctOption = stored.correctOption;
+            question.score = mapping.score;
+            g_state.questions.push_back(question);
+            break;
+        }
+    }
+
+    return !g_state.questions.empty();
+}
 
 static int getNextAttemptId()
 {
@@ -118,16 +341,21 @@ static bool saveAttempt()
     if (!file.is_open())
         return false;
 
-    file << g_state.studentId
-         << "|"
-         << g_state.attempt->getAttemptId()
-         << "|"
-         << g_state.attempt->getTestId()
-         << "|"
-         << g_state.attempt->getStartTime()
-         << "|"
-         << g_state.attempt->getSubmitTime()
-         << "|";
+    if (!g_state.studentUsername.empty())
+        file << g_state.studentUsername;
+    else
+        file << g_state.studentId;
+
+    file
+        << "|"
+        << g_state.attempt->getAttemptId()
+        << "|"
+        << g_state.attempt->getTestId()
+        << "|"
+        << g_state.attempt->getStartTime()
+        << "|"
+        << g_state.attempt->getSubmitTime()
+        << "|";
 
     if (g_state.attempt->isSubmitted())
         file << "Submitted";
@@ -137,6 +365,48 @@ static bool saveAttempt()
     file << "\n";
 
     file.close();
+
+    return true;
+}
+
+static bool saveResult()
+{
+    if (!g_state.result || !g_state.attempt)
+        return false;
+
+    std::ofstream file(RESULT_FILE, std::ios::app);
+
+    if (!file.is_open())
+        return false;
+
+    if (!g_state.studentUsername.empty())
+        file << g_state.studentUsername;
+    else
+        file << g_state.studentId;
+
+    file << "|"
+         << g_state.attempt->getAttemptId()
+         << "|"
+         << g_state.attempt->getTestId()
+         << "|"
+         << g_state.result->getTotalScore()
+         << "|"
+         << g_state.result->getMaxScore()
+         << "|"
+         << g_state.result->getPercentage()
+         << "|"
+         << g_state.result->getGrade()
+         << "|"
+         << g_state.result->getCorrectCount()
+         << "|"
+         << g_state.result->getWrongCount()
+         << "|"
+         << g_state.result->getUnansweredCount()
+         << "|"
+         << g_state.result->getTimeTaken()
+         << "|"
+         << g_state.result->getSubmittedAt()
+         << "\n";
 
     return true;
 }
@@ -394,7 +664,7 @@ static void createQuestionControls(HWND hwnd)
             650,
             35,
             hwnd,
-            (HMENU)(ID_RADIO_BASE + i),
+            (HMENU)(INT_PTR)(ID_RADIO_BASE + i),
             GetModuleHandle(nullptr),
             nullptr);
 
@@ -432,13 +702,15 @@ static void startTest(HWND hwnd)
         return;
     }
 
-    loadSampleQuiz();
+    bool loaded = loadPublishedQuiz();
 
     if (g_state.questions.empty())
     {
         showMessage(
             hwnd,
-            "No quiz questions available.");
+            loaded
+                ? "The registered quiz has no available questions."
+                : "Please register for a published quiz before starting.");
 
         return;
     }
@@ -461,7 +733,7 @@ static void startTest(HWND hwnd)
 
     g_state.attempt = new TestAttempt(
         getNextAttemptId(),
-        1,
+        g_state.testId,
         g_state.studentId);
 
     delete g_state.result;
@@ -469,8 +741,6 @@ static void startTest(HWND hwnd)
     g_state.result = nullptr;
 
     g_state.currentQuestion = 0;
-
-    g_state.timeLimit = 300;
 
     g_state.remainingSeconds =
         g_state.timeLimit;
@@ -499,11 +769,11 @@ static void calculateResult()
 
     double maximumScore = 0.0;
 
-    for (
-        const QuizQuestion &q :
-        g_state.questions)
+    for (int i = 0; i < static_cast<int>(g_state.questions.size()); ++i)
     {
+        const QuizQuestion &q = g_state.questions[i];
         maximumScore += q.score;
+        g_state.answers[i].evaluate(q.correctOption, q.score);
     }
 
     int secondsTaken =
@@ -522,6 +792,8 @@ static void calculateResult()
         maximumScore,
         secondsTaken,
         g_state.attempt->getSubmitTime());
+
+    saveResult();
 }
 
 // =====================================================
@@ -848,21 +1120,37 @@ static void drawStudentGUI(
 
         drawText(
             hdc,
-            "C++ Programming Fundamentals",
+            g_state.testTitle,
             70,
             170,
             20);
 
+        std::ostringstream quizInfo;
+
+        if (g_state.questions.empty())
+        {
+            quizInfo << "Register for a published quiz to begin";
+        }
+        else
+        {
+            quizInfo << g_state.questions.size()
+                     << " Questions   |   "
+                     << (g_state.timeLimit / 60)
+                     << " Minutes";
+        }
+
         drawText(
             hdc,
-            "5 Questions   |   5 Minutes   |   5 Marks",
+            quizInfo.str(),
             70,
             210,
             16);
 
         drawText(
             hdc,
-            "Status: Published",
+            g_state.questions.empty()
+                ? "Status: Registration required"
+                : "Status: Published",
             70,
             245,
             16);
@@ -1126,12 +1414,22 @@ static LRESULT CALLBACK StudentGUIProc(
 void openStudentGUI(
     HWND parent,
     int studentId,
-    const std::string &studentName)
+    const std::string &studentName,
+    const std::string &studentUsername)
 {
     g_state.studentId = studentId;
 
     g_state.studentName =
         studentName;
+
+    g_state.studentUsername =
+        studentUsername;
+
+    if (!loadPublishedQuiz())
+    {
+        g_state.testTitle = "No registered quiz";
+        g_state.timeLimit = 0;
+    }
 
     g_state.testStarted = false;
 

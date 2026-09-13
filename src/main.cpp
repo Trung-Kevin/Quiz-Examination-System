@@ -127,7 +127,7 @@ LRESULT CALLBACK FormWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 390,
                 38,
                 hwnd,
-                (HMENU)(ID_FORM_BASE + (int)i),
+                (HMENU)(INT_PTR)(ID_FORM_BASE + (int)i),
                 NULL,
                 NULL);
 
@@ -513,6 +513,279 @@ void loadRegisteredQuizzes()
     }
 
     file.close();
+}
+
+bool isQuizRegistered(const string &quizName);
+
+vector<string> loadPublishedQuizItems()
+{
+    vector<string> items;
+    ifstream file("data/tests.txt");
+
+    if (!file.is_open())
+        return items;
+
+    string line;
+
+    while (getline(file, line))
+    {
+        if (line.empty())
+            continue;
+
+        stringstream ss(line);
+        vector<string> fields;
+        string field;
+
+        while (getline(ss, field, '|'))
+            fields.push_back(field);
+
+        if (fields.size() < 10 || fields[9] != "Published")
+            continue;
+
+        items.push_back(
+            fields[1] +
+            " | " +
+            fields[3] +
+            " | " +
+            fields[8] +
+            " questions | " +
+            fields[5] +
+            " minutes | " +
+            (isQuizRegistered(fields[1])
+                 ? "Registered"
+                 : "Published"));
+    }
+
+    return items;
+}
+
+vector<string> splitDataLine(const string &line)
+{
+    vector<string> fields;
+    stringstream ss(line);
+    string field;
+
+    while (getline(ss, field, '|'))
+        fields.push_back(field);
+
+    return fields;
+}
+
+vector<string> loadStudentAttemptItems()
+{
+    vector<string> items;
+    ifstream file("data/attempts.txt");
+    string line;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() < 6 || fields[0] != currentUsername)
+            continue;
+
+        items.push_back(
+            "Attempt " + fields[1] +
+            " | Test " + fields[2] +
+            " | Started: " + fields[3] +
+            " | Submitted: " + fields[4] +
+            " | Status: " + fields[5]);
+    }
+
+    return items;
+}
+
+vector<string> loadStudentResultItems()
+{
+    vector<string> items;
+    ifstream file("data/results.txt");
+    string line;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() < 12 || fields[0] != currentUsername)
+            continue;
+
+        items.push_back(
+            "Attempt " + fields[1] +
+            " | Score: " + fields[3] + "/" + fields[4] +
+            " | Percentage: " + fields[5] + "%" +
+            " | Grade: " + fields[6] +
+            " | Correct: " + fields[7] +
+            " | Wrong: " + fields[8] +
+            " | Unanswered: " + fields[9] +
+            " | Submitted: " + fields[11]);
+    }
+
+    return items;
+}
+
+vector<string> loadTeacherResultItems()
+{
+    vector<string> items;
+    ifstream file("data/results.txt");
+    string line;
+    double totalPercentage = 0.0;
+    double highestPercentage = 0.0;
+    double lowestPercentage = 101.0;
+    int count = 0;
+    int passed = 0;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() < 12)
+            continue;
+
+        try
+        {
+            double percentage = stod(fields[5]);
+            totalPercentage += percentage;
+            highestPercentage = max(highestPercentage, percentage);
+            lowestPercentage = min(lowestPercentage, percentage);
+            count++;
+
+            if (percentage >= 60.0)
+                passed++;
+
+            items.push_back(
+                "Student: " + fields[0] +
+                " | Attempt: " + fields[1] +
+                " | Score: " + fields[3] + "/" + fields[4] +
+                " | Percentage: " + fields[5] + "%" +
+                " | Grade: " + fields[6]);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (count == 0)
+    {
+        items.push_back("No submitted examination results.");
+        return items;
+    }
+
+    vector<string> summary;
+    summary.push_back(
+        "Average Score: " + to_string(totalPercentage / count) + "%");
+    summary.push_back(
+        "Highest Score: " + to_string(highestPercentage) + "%");
+    summary.push_back(
+        "Lowest Score: " + to_string(lowestPercentage) + "%");
+    summary.push_back(
+        "Pass Rate: " + to_string((passed * 100.0) / count) + "%");
+    summary.push_back(
+        "Fail Rate: " + to_string(((count - passed) * 100.0) / count) + "%");
+    summary.push_back("--- Submitted Results ---");
+    summary.insert(summary.end(), items.begin(), items.end());
+
+    return summary;
+}
+
+vector<string> loadTeacherAttemptItems()
+{
+    vector<string> items;
+    ifstream file("data/attempts.txt");
+    string line;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() < 6)
+            continue;
+
+        items.push_back(
+            "Student: " + fields[0] +
+            " | Attempt: " + fields[1] +
+            " | Test: " + fields[2] +
+            " | Status: " + fields[5] +
+            " | Submitted: " + fields[4]);
+    }
+
+    if (items.empty())
+        items.push_back("No quiz attempts recorded.");
+
+    return items;
+}
+
+vector<string> loadTeacherRegistrationItems()
+{
+    vector<string> items;
+    ifstream file(registrationFile);
+    string line;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() >= 2)
+            items.push_back(
+                "Student: " + fields[0] +
+                " | Quiz: " + fields[1]);
+    }
+
+    if (items.empty())
+        items.push_back("No student registrations recorded.");
+
+    return items;
+}
+
+vector<string> loadUsersByRole(const string &wantedRole)
+{
+    vector<string> items;
+    ifstream file("data/users.txt");
+    string line;
+
+    while (file.is_open() && getline(file, line))
+    {
+        vector<string> fields = splitDataLine(line);
+
+        if (fields.size() >= 8 && fields[7] == wantedRole)
+            items.push_back(
+                fields[0] + " | " + fields[1] +
+                " | " + fields[4] + " | " + fields[6]);
+    }
+
+    if (items.empty())
+        items.push_back("No " + wantedRole + " accounts found.");
+
+    return items;
+}
+
+vector<string> loadSystemLogItems()
+{
+    vector<string> items;
+    const vector<string> files =
+        {"data/users.txt",
+         "data/registrations.txt",
+         "data/attempts.txt",
+         "data/results.txt",
+         "data/tests.txt",
+         "data/test_questions.txt"};
+
+    for (const string &path : files)
+    {
+        ifstream file(path);
+        int lineCount = 0;
+        string line;
+
+        while (file.is_open() && getline(file, line))
+        {
+            if (!line.empty())
+                lineCount++;
+        }
+
+        items.push_back(
+            path + " | Records: " + to_string(lineCount) +
+            (file.is_open() ? " | Available" : " | Not created"));
+    }
+
+    return items;
 }
 
 // -----------------------------------------------------
@@ -2262,42 +2535,24 @@ LRESULT CALLBACK DashboardWindowProc(
 
                 case 1:
                 {
-                    vector<string> availableQuizItems;
+                    vector<string> availableQuizItems =
+                        loadPublishedQuizItems();
 
-                    // Test 1
-                    if (
-                        isQuizRegistered(
-                            "Test 1"))
-                    {
-                        availableQuizItems.push_back(
-                            "Test 1 | C++ Fundamentals | 5 questions | 5 minutes | Registered");
-                    }
-                    else
-                    {
-                        availableQuizItems.push_back(
-                            "Test 1 | C++ Fundamentals | 5 questions | 5 minutes | Published");
-                    }
+                    bool hasPublishedQuiz =
+                        !availableQuizItems.empty();
 
-                    // Test 2
-                    if (
-                        isQuizRegistered(
-                            "Test 2"))
-                    {
+                    if (!hasPublishedQuiz)
                         availableQuizItems.push_back(
-                            "Test 2 | Object-Oriented Programming | 10 questions | 10 minutes | Registered");
-                    }
-                    else
-                    {
-                        availableQuizItems.push_back(
-                            "Test 2 | Object-Oriented Programming | 10 questions | 10 minutes | Published");
-                    }
+                            "No published quizzes available.");
 
                     openFeatureWindow(
                         hwnd,
                         "Available Quizzes",
                         "Published quizzes available for the current student.",
                         availableQuizItems,
-                        "Register Selected");
+                        hasPublishedQuiz
+                            ? "Register Selected"
+                            : "");
 
                     break;
                 }
@@ -2346,7 +2601,8 @@ LRESULT CALLBACK DashboardWindowProc(
                     openStudentGUI(
                         hwnd,
                         currentUserId,
-                        currentFullName);
+                        currentFullName,
+                        currentUsername);
                     break;
 
                     // -------------------------------------------------
@@ -2354,26 +2610,42 @@ LRESULT CALLBACK DashboardWindowProc(
                     // -------------------------------------------------
 
                 case 4:
+                {
+                    vector<string> items =
+                        loadStudentAttemptItems();
+
+                    if (items.empty())
+                        items.push_back("No previous attempts recorded yet.");
+
                     openFeatureWindow(
                         hwnd,
                         "Previous Attempts",
                         "Previous quiz attempts of the current student.",
-                        {"No previous attempts recorded yet."});
+                        items);
 
                     break;
+                }
 
                     // -------------------------------------------------
                     // Examination Results
                     // -------------------------------------------------
 
                 case 5:
+                {
+                    vector<string> items =
+                        loadStudentResultItems();
+
+                    if (items.empty())
+                        items.push_back("No examination results available yet.");
+
                     openFeatureWindow(
                         hwnd,
                         "Examination Results",
                         "Results of completed examinations.",
-                        {"No examination results available yet."});
+                        items);
 
                     break;
+                }
                 }
             }
 
@@ -2439,11 +2711,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Results & Statistics",
                         "Teacher statistics and examination results.",
-                        {"Average Score: No result data yet",
-                         "Highest Score: No result data yet",
-                         "Lowest Score: No result data yet",
-                         "Pass Rate: No result data yet",
-                         "Fail Rate: No result data yet"});
+                        loadTeacherResultItems());
 
                     break;
 
@@ -2456,7 +2724,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Student Registrations",
                         "Students registered for the teacher's quizzes.",
-                        {"No student registration data available yet."});
+                        loadTeacherRegistrationItems());
 
                     break;
 
@@ -2469,7 +2737,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Quiz Attempts",
                         "Student quiz attempts and submission information.",
-                        {"No quiz attempt data available yet."});
+                        loadTeacherAttemptItems());
 
                     break;
                 }
@@ -2527,9 +2795,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Student Information",
                         "Student accounts currently stored in the system.",
-                        {"U003 | student | Student Test | Active",
-                         "S1 | kien | tran vien ky | Active",
-                         "S1 | vien | trannguyentrungkien | Active"});
+                        loadUsersByRole("Student"));
 
                     break;
 
@@ -2542,7 +2808,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Teacher Information",
                         "Teacher accounts currently stored in the system.",
-                        {"U002 | teacher | Teacher Test | Active"});
+                        loadUsersByRole("Teacher"));
 
                     break;
 
@@ -2563,8 +2829,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "Reports",
                         "Examination and system reports.",
-                        {"No examination report data available yet.",
-                         "Reports will be generated after examination data exists."});
+                        loadTeacherResultItems());
 
                     break;
 
@@ -2577,7 +2842,7 @@ LRESULT CALLBACK DashboardWindowProc(
                         hwnd,
                         "System Logs",
                         "System activity and execution logs.",
-                        {"No system log data available yet."});
+                        loadSystemLogItems());
 
                     break;
                 }
@@ -4242,7 +4507,20 @@ int WINAPI WinMain(
             NULL);
 
     if (!hwnd)
+    {
+        std::ofstream errorFile("data/startup_error.txt");
+        errorFile << "CreateWindowExA failed. Win32 error: "
+                  << GetLastError()
+                  << "\n";
+
+        MessageBoxA(
+            NULL,
+            "The main window could not be created. See data/startup_error.txt.",
+            "Quiz Examination System",
+            MB_OK | MB_ICONERROR);
+
         return 0;
+    }
 
     ShowWindow(
         hwnd,

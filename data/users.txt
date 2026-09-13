@@ -3,3 +3,4 @@ U002|teacher|123456|teacher@gmail.com|Teacher Test|01/01/2000|Active|Teacher
 U003|student|123456|student@gmail.com|Student Test|01/01/2000|Active|Student
 S1|kien|26102005|ky@gmail.com|tran vien ky|11/11/2004|Active|Student
 S1|vien|98765|trung@gmail.com|trannguyentrungkien|12/12/2012|Active|Student
+S100|newstudent|123456|update@gmail.com|Updated Student|11/11/2014|Active|Student

@@ -3,6 +3,7 @@
 #include "TestQuestion.h"
 
 #include <windows.h>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -120,6 +121,145 @@ static std::string statusToString(TestStatus status)
     }
 
     return "Draft";
+}
+
+static TestStatus stringToStatus(const std::string &value)
+{
+    if (value == "Published")
+        return TestStatus::Published;
+
+    if (value == "Closed")
+        return TestStatus::Closed;
+
+    return TestStatus::Draft;
+}
+
+static void saveTestData()
+{
+    std::ofstream testFile("data/tests.txt");
+    std::ofstream questionFile("data/test_questions.txt");
+
+    if (!testFile.is_open() || !questionFile.is_open())
+        return;
+
+    for (const Test &test : testList)
+    {
+        Course course = test.getCourse();
+
+        testFile
+            << test.getTestId() << "|"
+            << test.getTitle() << "|"
+            << course.getCourseId() << "|"
+            << course.getName() << "|"
+            << course.getDescription() << "|"
+            << test.getTimeLimit() << "|"
+            << test.getStartTime() << "|"
+            << test.getEndTime() << "|"
+            << test.getQuestionCount() << "|"
+            << statusToString(test.getStatus()) << "\n";
+    }
+
+    for (const TestQuestion &question : testQuestionList)
+    {
+        questionFile
+            << question.getTestId() << "|"
+            << question.getQuestionId() << "|"
+            << question.getQuestionOrder() << "|"
+            << question.getScore() << "\n";
+    }
+}
+
+static void loadTestData()
+{
+    testList.clear();
+    testQuestionList.clear();
+    nextTestId = 1;
+
+    std::ifstream testFile("data/tests.txt");
+    std::string line;
+
+    while (testFile.is_open() && std::getline(testFile, line))
+    {
+        if (line.empty())
+            continue;
+
+        std::stringstream ss(line);
+        std::string idText;
+        std::string title;
+        std::string courseIdText;
+        std::string courseName;
+        std::string courseDescription;
+        std::string timeText;
+        std::string startTime;
+        std::string endTime;
+        std::string countText;
+        std::string statusText;
+
+        std::getline(ss, idText, '|');
+        std::getline(ss, title, '|');
+        std::getline(ss, courseIdText, '|');
+        std::getline(ss, courseName, '|');
+        std::getline(ss, courseDescription, '|');
+        std::getline(ss, timeText, '|');
+        std::getline(ss, startTime, '|');
+        std::getline(ss, endTime, '|');
+        std::getline(ss, countText, '|');
+        std::getline(ss, statusText);
+
+        try
+        {
+            int testId = std::stoi(idText);
+            int courseId = std::stoi(courseIdText);
+            int timeLimit = std::stoi(timeText);
+            int questionCount = std::stoi(countText);
+
+            testList.emplace_back(
+                testId,
+                title,
+                Course(courseId, courseName, courseDescription),
+                timeLimit,
+                startTime,
+                endTime,
+                questionCount,
+                stringToStatus(statusText));
+
+            nextTestId = std::max(nextTestId, testId + 1);
+        }
+        catch (...)
+        {
+        }
+    }
+
+    std::ifstream questionFile("data/test_questions.txt");
+
+    while (questionFile.is_open() && std::getline(questionFile, line))
+    {
+        if (line.empty())
+            continue;
+
+        std::stringstream ss(line);
+        std::string testIdText;
+        std::string questionIdText;
+        std::string orderText;
+        std::string scoreText;
+
+        std::getline(ss, testIdText, '|');
+        std::getline(ss, questionIdText, '|');
+        std::getline(ss, orderText, '|');
+        std::getline(ss, scoreText);
+
+        try
+        {
+            testQuestionList.emplace_back(
+                std::stoi(testIdText),
+                std::stoi(questionIdText),
+                std::stoi(orderText),
+                std::stod(scoreText));
+        }
+        catch (...)
+        {
+        }
+    }
 }
 
 // ============================================================
@@ -522,6 +662,7 @@ static void updateTest()
     test.setEndTime(endTime);
 
     test.update();
+    saveTestData();
 
     refreshTestList();
 
@@ -595,6 +736,8 @@ static void deleteTest()
                 return tq.getTestId() == testId;
             }),
         testQuestionList.end());
+
+    saveTestData();
 
     refreshTestList();
 
@@ -682,6 +825,7 @@ static void publishTest()
     }
 
     testList[selected].publish();
+    saveTestData();
 
     refreshTestList();
 
@@ -768,6 +912,7 @@ static void unpublishTest()
         return;
 
     test.unpublish();
+    saveTestData();
 
     refreshTestList();
 
@@ -789,6 +934,67 @@ static void unpublishTest()
 // ============================================================
 // ADD QUESTION TO TEST
 // ============================================================
+
+static bool questionIsReadyForTest(int questionId)
+{
+    std::ifstream questionFile("data/questions.txt");
+    std::string line;
+    bool exists = false;
+
+    while (questionFile.is_open() && std::getline(questionFile, line))
+    {
+        std::stringstream ss(line);
+        std::string idText;
+        std::getline(ss, idText, '|');
+
+        try
+        {
+            if (std::stoi(idText) == questionId)
+            {
+                exists = true;
+                break;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+
+    if (!exists)
+        return false;
+
+    std::ifstream optionFile("data/answer_options.txt");
+    int optionCount = 0;
+    bool hasCorrectOption = false;
+
+    while (optionFile.is_open() && std::getline(optionFile, line))
+    {
+        std::stringstream ss(line);
+        std::string questionIdText;
+        std::string optionIdText;
+        std::string correctText;
+
+        std::getline(ss, questionIdText, '|');
+        std::getline(ss, optionIdText, '|');
+        std::getline(ss, correctText, '|');
+
+        try
+        {
+            if (std::stoi(questionIdText) == questionId)
+            {
+                optionCount++;
+
+                if (correctText == "1")
+                    hasCorrectOption = true;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+
+    return optionCount >= 2 && hasCorrectOption;
+}
 
 static void addQuestionToTest()
 {
@@ -941,6 +1147,17 @@ static void addQuestionToTest()
 
             return;
         }
+
+        if (!questionIsReadyForTest(questionId))
+        {
+            MessageBoxA(
+                NULL,
+                "The question must exist in the Question Bank and have at least two options with one correct answer.",
+                "Error",
+                MB_OK | MB_ICONERROR);
+
+            return;
+        }
     }
 
     for (const TestQuestion &tq :
@@ -970,6 +1187,7 @@ static void addQuestionToTest()
 
     test.setQuestionCount(
         test.getQuestionCount() + 1);
+    saveTestData();
 
     refreshTestList();
     refreshQuestionList();
@@ -1092,6 +1310,8 @@ static void removeQuestionFromTest()
     {
         test.removeQuestion();
     }
+
+    saveTestData();
 
     refreshTestList();
     refreshQuestionList();
@@ -1723,6 +1943,8 @@ static LRESULT CALLBACK TestGuiProc(
 
 void openTestGui(HWND parent)
 {
+    loadTestData();
+
     const char CLASS_NAME[] =
         "QuizTestManagementGui";
 
